@@ -1,0 +1,6 @@
+venv/
+media/
+renders/
+__pycache__/
+*.pyc
+temp/
