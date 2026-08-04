@@ -5,7 +5,7 @@ from theme import BLUE, DIM, INK, VideoScene, mono
 
 class EndCard(VideoScene):
     def construct(self) -> None:
-        title = mono("github.com/smiles0527/superopt", size=36, color=INK)
+        title = mono("github.com/festivixy/superopt", size=36, color=INK)
         title.move_to([0, 0.4, 0])
         self.play(FadeIn(title), run_time=0.9)
         self.wait(0.5)
