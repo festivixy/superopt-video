@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
-from manim import Create, FadeOut, Mobject, Scene, Transform
+import numpy as np
+from manim import Create, FadeOut, Mobject, Scene, Transform, Wait, config
 
 from kit import style, zones
 
@@ -105,6 +106,21 @@ def leaf_ids(mobjects) -> set[int]:
     return {id(x) for m in mobjects for x in m.get_family() if x.has_points()}
 
 
+def signature(m: Mobject) -> tuple:
+    """Geometry and style of every drawn leaf: what the next clip must reproduce exactly."""
+    leaves = []
+    for x in m.get_family():
+        if not x.has_points():
+            continue
+        c = x.get_center()
+        leaves.append((
+            round(float(c[0]), 3), round(float(c[1]), 3), round(float(x.width), 3), round(float(x.height), 3),
+            x.get_stroke_color().to_hex(), round(float(x.get_stroke_opacity()), 2),
+            x.get_fill_color().to_hex(), round(float(x.get_fill_opacity()), 2),
+        ))
+    return tuple(leaves)
+
+
 def _default_timing() -> Mapping[str, float]:
     import timing
 
@@ -125,6 +141,7 @@ class BeatScene(Scene):
             raise BoardMismatch(f"no timing for beat {self.beat_id}")
         self.target = float(timings[self.beat_id])
         self.elapsed = 0.0
+        self.frames = 0
         self._wipe: dict[str, Mobject] = {}
         if self.board.index(self.beat_id) == 0 and self.board.previous is not None:
             prev = self.board.previous
@@ -142,8 +159,14 @@ class BeatScene(Scene):
         return self.budget / n
 
     def play(self, *args, **kwargs):
-        super().play(*args, **kwargs)
-        self.elapsed += self.duration  # Scene.wait() routes through play()
+        super().play(*args, **kwargs)  # Scene.wait() routes through play() too
+        # Count frames the way Manim 0.21 writes them: a static wait writes int(d * fps)
+        # frames, anything else writes len(arange(0, d, 1/fps)), i.e. rounds up.
+        fps = config.frame_rate
+        anims = self.animations or []
+        frozen = len(anims) == 1 and isinstance(anims[0], Wait) and not self.should_update_mobjects()
+        self.frames += int(self.duration * fps) if frozen else len(np.arange(0, self.duration, 1 / fps))
+        self.elapsed = self.frames / fps
 
     def construct(self) -> None:
         if self._wipe:
@@ -196,8 +219,17 @@ class BeatScene(Scene):
             raise BoardMismatch(f"{self.beat_id}: stray mobjects on screen: {len(on_screen - expected)}")
         if expected - on_screen:
             raise BoardMismatch(f"{self.beat_id}: board items missing from screen")
+        replayed = replay(self.board.records_through(self.beat_id))
+        for key, m in self.items.items():
+            if signature(m) != signature(replayed[key]):
+                raise BoardMismatch(
+                    f"{self.beat_id}: {key!r} changed in place (position, size, colour or opacity); "
+                    "the next clip would replay the original. Make the change a board record."
+                )
         remaining = self.target - self.elapsed
         if remaining < -TIME_TOLERANCE:
             raise TimingOverrun(f"{self.beat_id}: animations run {-remaining:.1f}s past the {self.target}s beat")
-        if remaining > 0:
-            self.wait(remaining)
+        fps = config.frame_rate
+        pad = round(self.target * fps) - self.frames
+        if pad > 0:
+            self.wait((pad + 0.5) / fps)  # static wait writes int((pad + 0.5)) == pad frames

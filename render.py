@@ -52,7 +52,9 @@ def output_path(file: str, cls: str, mode: str) -> Path:
 
 def _render_one(file: str, cls: str, mode: str) -> Path:
     env = dict(os.environ, PYTHONPATH=str(ROOT))
-    result = subprocess.run(manim_command(file, cls, mode), cwd=ROOT, env=env, capture_output=True, text=True)
+    # stdin=DEVNULL: if manim ever prompts (e.g. scene not found), fail instead of hanging on a hidden prompt
+    result = subprocess.run(manim_command(file, cls, mode), cwd=ROOT, env=env, capture_output=True, text=True,
+                            stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         raise RuntimeError(f"{cls} failed:\n{result.stderr[-3000:]}")
     out = output_path(file, cls, mode)

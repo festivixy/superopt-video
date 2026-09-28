@@ -149,7 +149,7 @@ def test_overrun_raises_with_beat_and_amount():
             self.write("dot", run_time=2.5)
             self.write("sq", run_time=2.5)
 
-    with pytest.raises(TimingOverrun, match=r"a1.*2\.0"):
+    with pytest.raises(TimingOverrun, match=r"a1.*2\.1"):  # 2 x 38 frames at 15 fps = 5.07 s, 2.07 s over
         render_dry(Slow)
 
 
@@ -162,3 +162,49 @@ def test_missing_timing_raises():
 
     with pytest.raises(BoardMismatch, match="no timing"):
         render_dry(NoTime)
+
+
+def test_restyling_a_board_item_in_place_is_caught():
+    # Final review #1: continuity must see colour/opacity, not just position and size
+    class Recolor(BeatScene):
+        beat_id, board, timing = "a1", A, TIMES
+
+        def animate_beat(self):
+            dot = self.write("dot", run_time=0.5)
+            self.write("sq", run_time=0.5)
+            self.play(dot.animate.set_color("#FC6255").set_opacity(0.1), run_time=0.3)
+
+    with pytest.raises(BoardMismatch, match="dot.*changed"):
+        render_dry(Recolor)
+
+
+ODD = Board("odd", ("o1",), (Write("o1", "dot", lambda: Dot()),))
+
+
+class Odd(BeatScene):
+    # 0.35 s is not a whole number of 15 fps frames; Manim rounds each play up a frame
+    beat_id, board, timing = "o1", ODD, {"o1": 3.0}
+
+    def animate_beat(self):
+        dot = self.write("dot", run_time=0.35)
+        for _ in range(4):
+            self.play(dot.animate.shift([0.01, 0, 0]).shift([-0.01, 0, 0]), run_time=0.35)
+
+
+def test_frame_count_lands_exactly_on_target_in_dry_run():
+    # Final review #4: pad to round(target * fps) frames, counting like Manim does
+    scene = render_dry(Odd)
+    assert scene.frames == round(3.0 * 15)
+
+
+def test_rendered_clip_has_exactly_the_target_frames(tmp_path):
+    import av
+    from manim import tempconfig
+
+    with tempconfig({"quality": "low_quality", "disable_caching": True, "media_dir": str(tmp_path)}):
+        scene = Odd()
+        scene.render()
+        path = scene.renderer.file_writer.movie_file_path
+    with av.open(str(path)) as clip:
+        frames = sum(1 for _ in clip.decode(video=0))
+    assert frames == round(3.0 * 15)

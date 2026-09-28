@@ -42,3 +42,45 @@ def test_each_beat_renders_into_its_own_media_dir():
     b = render.manim_command("beats/intro.py", "B_I_2", "preview")
     media = lambda cmd: cmd[cmd.index("--media_dir") + 1]
     assert media(a) != media(b)
+
+
+def test_scene_class_names_match_their_beat_ids():
+    # Final review #3: render.py selects scenes by class name, the registry by beat_id
+    from beats import all_beats
+
+    for beat_id, cls in all_beats().items():
+        assert cls.__name__ == render.class_name(beat_id)
+
+
+def test_registry_rejects_a_misnamed_scene():
+    import types
+
+    from beats import all_beats
+    from kit.beat import BeatScene
+
+    module = types.ModuleType("fake_beats")
+
+    class B_9_9(BeatScene):
+        beat_id = "9.8"
+
+    module.B_9_9 = B_9_9
+    import sys
+    sys.modules["fake_beats"] = module
+    try:
+        with pytest.raises(ValueError, match="B_9_9.*9.8"):
+            all_beats(("fake_beats",))
+    finally:
+        del sys.modules["fake_beats"]
+
+
+def test_child_renders_never_wait_on_stdin(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen.update(kwargs)
+        raise SystemExit  # stop before checking outputs
+
+    monkeypatch.setattr(render.subprocess, "run", fake_run)
+    with pytest.raises(SystemExit):
+        render._render_one("beats/intro.py", "B_I_1", "preview")
+    assert seen.get("stdin") == render.subprocess.DEVNULL

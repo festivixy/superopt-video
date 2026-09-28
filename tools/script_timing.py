@@ -22,6 +22,9 @@ class Beat:
 
 def parse(text: str) -> list[Beat]:
     body = text.split(END_OF_BEATS, 1)[0]
+    for line in body.splitlines():
+        if line.startswith("###") and not HEAD.match(line):
+            raise ValueError(f"malformed beat header (expected '### <id> · <title>'): {line!r}")
     pieces = HEAD.split(body)
     beats: list[Beat] = []
     seen: set[str] = set()
@@ -29,9 +32,12 @@ def parse(text: str) -> list[Beat]:
         if beat_id in seen:
             raise ValueError(f"duplicate beat id {beat_id}")
         seen.add(beat_id)
-        hold = HOLD.search(block)
-        if hold is None:
+        holds = HOLD.findall(block)
+        if not holds:
             raise ValueError(f"beat {beat_id} has no 'hold Ns' on its Scene line")
+        if len(holds) > 1:
+            raise ValueError(f"beat {beat_id} has more than one 'hold Ns' (two beats merged?)")
+        hold = HOLD.search(block)
         narration = " ".join(
             line[1:].strip() for line in block.splitlines() if line.startswith(">")
         )
