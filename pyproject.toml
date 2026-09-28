@@ -2,7 +2,7 @@
 name = "superopt-video"
 version = "0.3.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["manim>=0.19", "imageio-ffmpeg>=0.5"]
+dependencies = ["manim>=0.19", "imageio-ffmpeg>=0.5", "fonttools>=4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

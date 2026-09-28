@@ -34,14 +34,20 @@ def beats_in_part(part: str) -> list[str]:
     return [b for b in TIMING if b.split(".")[0] == prefix]
 
 
+def _media_dir(file: str, cls: str) -> Path:
+    # One media dir per beat: parallel manim processes otherwise race on the shared
+    # text/tex SVG cache and read half-written files.
+    return MEDIA / Path(file).stem / cls
+
+
 def manim_command(file: str, cls: str, mode: str) -> list[str]:
     flag = MODES[mode][0]
     return [sys.executable, "-m", "manim", "render", flag, "--disable_caching",
-            "--media_dir", str(MEDIA), file, cls]
+            "--media_dir", str(_media_dir(file, cls)), file, cls]
 
 
 def output_path(file: str, cls: str, mode: str) -> Path:
-    return MEDIA / "videos" / Path(file).stem / MODES[mode][1] / f"{cls}.mp4"
+    return _media_dir(file, cls) / "videos" / Path(file).stem / MODES[mode][1] / f"{cls}.mp4"
 
 
 def _render_one(file: str, cls: str, mode: str) -> Path:

@@ -35,3 +35,25 @@ def test_text_helpers_build_visible_mobjects():
     assert style.serif("Hacker's Delight").width > 0
     assert style.mono("0110 1100").width > 0
     assert style.math(r"x \mathbin{\&} (x-1)").width > 0
+
+
+def test_has_glyph_reads_the_bundled_font_files():
+    assert style.has_glyph(style.SERIF, "a")
+    assert not style.has_glyph(style.SERIF, "→")  # this STIX Two build has no arrows
+    assert style.has_glyph(style.MONO, "→")
+
+
+def test_serif_borrows_missing_glyphs_from_mono():
+    from manim import MarkupText, Text
+
+    plain = style.serif("superoptimization")
+    mixed = style.serif("1987 → now & <then>")
+    assert isinstance(plain, Text)
+    assert isinstance(mixed, MarkupText) and mixed.width > plain.width * 0.5
+
+
+def test_glyph_missing_from_every_font_raises():
+    with pytest.raises(style.FontError, match="missing glyph"):
+        style.mono("一")
+    with pytest.raises(style.FontError, match="missing glyph"):
+        style.serif("一")

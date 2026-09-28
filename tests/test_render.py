@@ -26,7 +26,7 @@ def test_manim_command_and_output_path():
     cmd = render.manim_command("beats/part2.py", "B_2_3", "preview")
     assert cmd[-2:] == ["beats/part2.py", "B_2_3"] and "-ql" in cmd
     assert render.output_path("beats/part2.py", "B_2_3", "preview").as_posix().endswith(
-        "renders/media/videos/part2/480p15/B_2_3.mp4"
+        "renders/media/part2/B_2_3/videos/part2/480p15/B_2_3.mp4"
     )
     assert "1080p60" in render.output_path("beats/part2.py", "B_2_3", "final").as_posix()
 
@@ -34,3 +34,11 @@ def test_manim_command_and_output_path():
 def test_concat_list_escapes_quotes():
     text = render.concat_list_text([Path("a/b's.mp4")])
     assert text.strip() == "file '" + Path("a/b's.mp4").resolve().as_posix().replace("'", "'\\''") + "'"
+
+
+def test_each_beat_renders_into_its_own_media_dir():
+    # parallel manim processes race on a shared text/tex SVG cache; one dir per beat avoids it
+    a = render.manim_command("beats/intro.py", "B_I_1", "preview")
+    b = render.manim_command("beats/intro.py", "B_I_2", "preview")
+    media = lambda cmd: cmd[cmd.index("--media_dir") + 1]
+    assert media(a) != media(b)

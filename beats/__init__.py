@@ -10,7 +10,12 @@ MODULES = ("beats.intro", "beats.part1", "beats.part2")
 def all_beats() -> dict[str, type[BeatScene]]:
     found: dict[str, type[BeatScene]] = {}
     for name in MODULES:
-        module = importlib.import_module(name)
+        try:
+            module = importlib.import_module(name)
+        except ModuleNotFoundError as err:
+            if err.name == name:  # that Part isn't built yet; its coverage test will say so
+                continue
+            raise
         for obj in vars(module).values():
             if isinstance(obj, type) and issubclass(obj, BeatScene) and obj is not BeatScene and obj.beat_id:
                 if obj.beat_id in found:
