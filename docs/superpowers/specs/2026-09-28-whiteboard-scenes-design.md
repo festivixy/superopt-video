@@ -188,7 +188,7 @@ number comes from `facts.py`.
   `min |P|  such that  ∀x: P(x) = f(x)`. Two numbered lines: 1) find the
   shortest P, 2) prove nothing shorter.
 - **I.9 The plan.** HEADLINE: "superoptimization (1987 →)". The timeline fills
-  in: May 29 start, Jun 9 first search, Jun 17 synthesis, Jul 28 bug found, Jul
+  in: May 29 start, Jun 9 first search, Jun 17 synthesis, Jul 28 bug fixed, Jul
   29 compiler survey, Aug 12 done. The ticks act as the video's roadmap.
 
 ### Part 1: "98 vs 2"
@@ -196,7 +196,7 @@ number comes from `facts.py`.
 - **1.1** WORK: the naive C card (from `assets/clear_lowest_bit.c`). Arrows
   label "check bit i", "switch it off", "x = 0 → 0".
 - **1.2** A tall assembly card scrolls (from `assets/clang_clear_lowest_bit.s`).
-  A bracket around one `mov / test / jne` group reads "× 32". Math:
+  A box goes around one `mov / test / jne` group. RULE: "boxed group of 3, once per bit" and
   `32 × 3 + 2 = 98`. **Kept:** 98.
 - **1.3** Assembly card: `lea eax, [rdi − 1]` / `and eax, edi`. `count_bars`:
   98 against 2. NOTES: "same result for all 2³² inputs".
