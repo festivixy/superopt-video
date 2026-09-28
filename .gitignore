@@ -4,3 +4,5 @@ renders/
 __pycache__/
 *.pyc
 temp/
+
+.superpowers/
