@@ -149,7 +149,7 @@ def test_overrun_raises_with_beat_and_amount():
             self.write("dot", run_time=2.5)
             self.write("sq", run_time=2.5)
 
-    with pytest.raises(TimingOverrun, match=r"a1.*2\.1"):  # 2 x 38 frames at 15 fps = 5.07 s, 2.07 s over
+    with pytest.raises(TimingOverrun, match=r"a1.*2\.1"):
         render_dry(Slow)
 
 
@@ -165,7 +165,6 @@ def test_missing_timing_raises():
 
 
 def test_restyling_a_board_item_in_place_is_caught():
-    # Final review #1: continuity must see colour/opacity, not just position and size
     class Recolor(BeatScene):
         beat_id, board, timing = "a1", A, TIMES
 
@@ -182,7 +181,6 @@ ODD = Board("odd", ("o1",), (Write("o1", "dot", lambda: Dot()),))
 
 
 class Odd(BeatScene):
-    # 0.35 s is not a whole number of 15 fps frames; Manim rounds each play up a frame
     beat_id, board, timing = "o1", ODD, {"o1": 3.0}
 
     def animate_beat(self):
@@ -192,7 +190,6 @@ class Odd(BeatScene):
 
 
 def test_frame_count_lands_exactly_on_target_in_dry_run():
-    # Final review #4: pad to round(target * fps) frames, counting like Manim does
     scene = render_dry(Odd)
     assert scene.frames == round(3.0 * 15)
 
@@ -208,3 +205,78 @@ def test_rendered_clip_has_exactly_the_target_frames(tmp_path):
     with av.open(str(path)) as clip:
         frames = sum(1 for _ in clip.decode(video=0))
     assert frames == round(3.0 * 15)
+
+
+SWAP = Board("swap", ("s1", "s2"), (
+    Write("s1", "old", lambda: Square()),
+    Erase("s2", "old"),
+    Write("s2", "new", lambda: Circle()),
+))
+
+
+def test_swap_replaces_one_item_with_another_in_zero_frames():
+    class Swap(BeatScene):
+        beat_id, board, timing = "s2", SWAP, {"s1": 2.0, "s2": 2.0}
+
+        def animate_beat(self):
+            before = self.frames
+            self.swap("old", "new")
+            assert self.frames == before
+
+    scene = render_dry(Swap)
+    assert set(scene.items) == {"new"}
+    assert leaf_ids(scene.mobjects) == leaf_ids(scene.items.values())
+
+
+def test_clear_transients_removes_working_left_after_lagged_pops():
+    from manim import GrowFromCenter, LaggedStart, VGroup
+
+    class Working(BeatScene):
+        beat_id, board, timing = "a1", A, TIMES
+
+        def animate_beat(self):
+            self.write("dot", run_time=0.3)
+            self.write("sq", run_time=0.3)
+            scratch = VGroup(*[Circle(radius=0.2).shift([x, -2, 0]) for x in range(4)])
+            self.play(LaggedStart(*[GrowFromCenter(c) for c in scratch], lag_ratio=0.2), run_time=0.5)
+            self.clear_transients()
+
+    scene = render_dry(Working)
+    assert leaf_ids(scene.mobjects) == leaf_ids(scene.items.values())
+
+
+def test_float_noise_below_a_pixel_is_not_a_board_change():
+    class Nudge(BeatScene):
+        beat_id, board, timing = "a1", A, TIMES
+
+        def animate_beat(self):
+            self.write("dot", run_time=0.3)
+            sq = self.write("sq", run_time=0.3)
+            self.play(sq.animate.scale(1.0006), run_time=0.2)
+
+    render_dry(Nudge)
+
+
+def test_a_visible_move_is_still_a_board_change():
+    class Shove(BeatScene):
+        beat_id, board, timing = "a1", A, TIMES
+
+        def animate_beat(self):
+            self.write("dot", run_time=0.3)
+            sq = self.write("sq", run_time=0.3)
+            self.play(sq.animate.shift([0.05, 0, 0]), run_time=0.2)
+
+    with pytest.raises(BoardMismatch, match="sq.*changed"):
+        render_dry(Shove)
+
+
+def test_signature_covers_screenshots():
+    import numpy as np
+    from manim import Group, ImageMobject
+
+    from kit.beat import signature, same_look
+
+    shot = Group(Square(), ImageMobject(np.full((4, 4, 3), 200, dtype=np.uint8)))
+    moved = shot.copy().shift([1, 0, 0])
+    assert same_look(signature(shot), signature(shot.copy()))
+    assert not same_look(signature(shot), signature(moved))

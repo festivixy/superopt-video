@@ -10,13 +10,13 @@ from kit.beat import fingerprint, replay
 from tests.conftest import render_dry
 from tools.script_timing import parse
 
-PREFIX = "2"
+PREFIX = "6"
 SCRIPT_BEATS = [b.id for b in parse(Path("script/script.md").read_text(encoding="utf-8"))
                 if b.id.split(".")[0] == PREFIX]
 
 
 def test_every_script_beat_has_a_scene_and_board_slot():
-    from boards.part2 import BOARD
+    from boards.part6 import BOARD
 
     assert list(BOARD.beats) == SCRIPT_BEATS
     registered = [b for b in all_beats() if b.split(".")[0] == PREFIX]

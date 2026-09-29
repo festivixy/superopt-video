@@ -70,7 +70,6 @@ def test_generated_timing_matches_the_script():
 
 
 def test_malformed_beat_header_is_rejected():
-    # Final review #2: a header that doesn't match must not silently merge into the previous beat
     bad = SAMPLE.replace("### 1.1 · The loop", "### 1.1 - The loop")
     with pytest.raises(ValueError, match="1.1 - The loop"):
         st.parse(bad)
@@ -80,3 +79,10 @@ def test_two_holds_in_one_beat_are_rejected():
     bad = SAMPLE.replace("> Here's the loop.", "> Here's the loop.\n**Scene:** extra · hold 3s\n> more")
     with pytest.raises(ValueError, match="1.1.*more than one"):
         st.parse(bad)
+
+
+def test_a_beat_marked_no_voice_is_pictures_only():
+    silent = SAMPLE.replace("> Here's the loop.", "").replace("hold 4s", "no voice · hold 4s")
+    beats = st.parse(silent)
+    assert beats[1] == st.Beat("1.1", 0, 4.0)
+    assert st.durations(beats)["1.1"] == 4.0

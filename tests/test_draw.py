@@ -6,8 +6,7 @@ from manim import Text
 from kit import draw, style
 
 BUILDERS = [
-    draw.desk_scene, draw.book, draw.open_book, draw.chess_board, draw.compiler_machine,
-    draw.phone, draw.browser_window, draw.laptop_icon, draw.code_icon, draw.game_controller,
+    draw.chess_board, draw.phone, draw.browser_window, draw.laptop_icon, draw.code_icon,
 ]
 
 
@@ -36,13 +35,6 @@ def test_monoline_rules(build):
             assert part.get_stroke_width() in (style.STROKE, style.STROKE * 0.7)
 
 
-def test_desk_scene_exposes_parts():
-    s = draw.desk_scene()
-    for name in ("person", "laptop", "desk", "chair", "book"):
-        assert getattr(s, name) in s.submobjects
-    assert s.person.forearm in s.person.submobjects
-
-
 def test_chess_board_geometry():
     b = draw.chess_board()
     assert len(b.squares) == 64
@@ -52,7 +44,3 @@ def test_chess_board_geometry():
     assert list(b.occupied) == sorted(b.occupied)
 
 
-def test_book_title_is_ours():
-    titles = [t.text for t in draw.book().get_family() if isinstance(t, Text)]
-    joined = " ".join(titles)
-    assert "Hacker's" in joined and "Delight" in joined

@@ -14,7 +14,6 @@ def test_example_arithmetic():
 
 
 def test_clang_count_follows_the_counting_rule():
-    # every body instruction except ret, as in the superopt compiler-gap script
     assert facts.count_instructions(facts.CLANG_ASM_LINES) == facts.CLANG_CLEAR_LOWEST_BIT == 98
     assert 32 * 3 + 2 == facts.CLANG_CLEAR_LOWEST_BIT
 

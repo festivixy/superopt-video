@@ -39,7 +39,7 @@ def test_text_helpers_build_visible_mobjects():
 
 def test_has_glyph_reads_the_bundled_font_files():
     assert style.has_glyph(style.SERIF, "a")
-    assert not style.has_glyph(style.SERIF, "→")  # this STIX Two build has no arrows
+    assert not style.has_glyph(style.SERIF, "→")
     assert style.has_glyph(style.MONO, "→")
 
 

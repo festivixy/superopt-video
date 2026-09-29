@@ -1,8 +1,8 @@
 venv/
-media/
 renders/
+media/
 __pycache__/
 *.pyc
-temp/
-
+.pytest_cache/
 .superpowers/
+temp/

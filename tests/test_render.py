@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-import render
+from tools import render
 
 
 def test_class_names():
@@ -13,7 +13,7 @@ def test_class_names():
 
 
 def test_beats_in_part_follow_script_order():
-    assert render.beats_in_part("intro") == [f"I.{i}" for i in range(1, 10)]
+    assert render.beats_in_part("intro") == [f"I.{i}" for i in range(0, 10)]
     assert render.beats_in_part("1") == ["1.1", "1.2", "1.3", "1.4"]
 
 
@@ -37,7 +37,6 @@ def test_concat_list_escapes_quotes():
 
 
 def test_each_beat_renders_into_its_own_media_dir():
-    # parallel manim processes race on a shared text/tex SVG cache; one dir per beat avoids it
     a = render.manim_command("beats/intro.py", "B_I_1", "preview")
     b = render.manim_command("beats/intro.py", "B_I_2", "preview")
     media = lambda cmd: cmd[cmd.index("--media_dir") + 1]
@@ -45,7 +44,6 @@ def test_each_beat_renders_into_its_own_media_dir():
 
 
 def test_scene_class_names_match_their_beat_ids():
-    # Final review #3: render.py selects scenes by class name, the registry by beat_id
     from beats import all_beats
 
     for beat_id, cls in all_beats().items():
@@ -78,9 +76,22 @@ def test_child_renders_never_wait_on_stdin(monkeypatch, tmp_path):
 
     def fake_run(cmd, **kwargs):
         seen.update(kwargs)
-        raise SystemExit  # stop before checking outputs
+        raise SystemExit
 
     monkeypatch.setattr(render.subprocess, "run", fake_run)
     with pytest.raises(SystemExit):
         render._render_one("beats/intro.py", "B_I_1", "preview")
     assert seen.get("stdin") == render.subprocess.DEVNULL
+
+
+def test_concat_leaves_only_the_video(tmp_path):
+    import imageio_ffmpeg
+    import subprocess
+
+    clip = tmp_path / "a.mp4"
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                    "color=c=black:s=64x36:d=0.2", str(clip)], check=True)
+    out = tmp_path / "joined.mp4"
+    render.concat([clip, clip], out)
+    assert out.exists()
+    assert not out.with_suffix(".txt").exists()

@@ -8,6 +8,6 @@ dependencies = ["manim>=0.19", "imageio-ffmpeg>=0.5", "fonttools>=4"]
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["video", "."]
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning:pydub.*"]
